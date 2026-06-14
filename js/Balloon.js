@@ -13,6 +13,12 @@ data.correct;
 
 this.radius=
 CONFIG.BALLOON_RADIUS;
+  
+this.hoverStart = null;
+
+this.hoverProgress = 0;
+
+this.selected = false;
 
 }
 
