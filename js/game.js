@@ -15,13 +15,30 @@ document.getElementById(
 const ctx =
 canvas.getContext("2d");
 
+const GAME_WIDTH = 1920;
+const GAME_HEIGHT = 1080;
+
 function resizeCanvas(){
 
-canvas.width =
+const screenWidth =
 window.innerWidth;
 
-canvas.height =
+const screenHeight =
 window.innerHeight;
+
+const scale = Math.min(
+screenWidth / GAME_WIDTH,
+screenHeight / GAME_HEIGHT
+);
+
+canvas.width = GAME_WIDTH;
+canvas.height = GAME_HEIGHT;
+
+canvas.style.width =
+(GAME_WIDTH * scale) + "px";
+
+canvas.style.height =
+(GAME_HEIGHT * scale) + "px";
 
 }
 
