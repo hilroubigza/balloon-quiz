@@ -1,170 +1,313 @@
-class BalloonManager{
+class BalloonManager {
 
-constructor(){
+    constructor() {
 
-this.balloons=[];
+        this.balloons = [];
 
-}
+    }
 
-spawn(question){
+    // =========================
+    // Spawn Question Balloons
+    // =========================
 
-this.balloons=[];
+    spawn(question) {
 
-const points=[
+        this.balloons = [];
 
-{
-x:250,
-y:700
-},
+        const w = canvas.width;
+        const h = canvas.height;
 
-{
-x:700,
-y:650
-},
+        const positions = [
 
-{
-x:1200,
-y:700
-},
+            {
+                x: w * 0.25,
+                y: h * 0.75
+            },
 
-{
-x:1600,
-y:650
-}
+            {
+                x: w * 0.45,
+                y: h * 0.75
+            },
 
-];
+            {
+                x: w * 0.65,
+                y: h * 0.75
+            },
 
-shuffle(points);
+            {
+                x: w * 0.85,
+                y: h * 0.75
+            }
 
-this.balloons.push(
+        ];
 
-new Balloon({
+        this.shuffleArray(
+            positions
+        );
 
-x:points[0].x,
+        const answer1Correct =
+            question.correct === 1;
 
-y:points[0].y,
+        const answer2Correct =
+            question.correct === 2;
 
-text:
-question.answer1,
+        // ------------------
+        // Balloon 1
+        // ------------------
 
-correct:
-question.correct===1
+        this.balloons.push(
 
-})
+            new Balloon({
 
-);
+                x: positions[0].x,
 
-this.balloons.push(
+                y: positions[0].y,
 
-new Balloon({
+                text: question.answer1,
 
-x:points[1].x,
+                correct:
+                    answer1Correct,
 
-y:points[1].y,
+                color:
+                    answer1Correct
+                        ? "#4CAF50"
+                        : "#F44336"
 
-text:
-question.answer2,
+            })
 
-correct:
-question.correct===2
+        );
 
-})
+        // ------------------
+        // Balloon 2
+        // ------------------
 
-);
+        this.balloons.push(
 
-}
+            new Balloon({
 
-update(){
+                x: positions[1].x,
 
-this.balloons.forEach(
+                y: positions[1].y,
 
-balloon=>{
+                text: question.answer2,
 
-balloon.update();
+                correct:
+                    answer2Correct,
 
-}
+                color:
+                    answer2Correct
+                        ? "#4CAF50"
+                        : "#F44336"
 
-);
+            })
 
-}
+        );
 
-  checkHover(){
+    }
 
-if(
-!cursor.visible
-)
-return;
+    // =========================
+    // Update
+    // =========================
 
-this.balloons.forEach(
+    update() {
 
-balloon=>{
+        this.balloons.forEach(
 
-if(
-balloon.contains(
+            balloon => {
 
-cursor.x,
+                balloon.update();
 
-cursor.y
+            }
 
-)
-){
+        );
 
-balloon.startHover();
+    }
 
-}
-else{
+    // =========================
+    // Draw
+    // =========================
 
-balloon.resetHover();
+    draw(ctx) {
 
-}
+        this.balloons.forEach(
 
-}
+            balloon => {
 
-);
+                balloon.draw(
+                    ctx
+                );
 
-}
+            }
 
-  getSelectedBalloon(){
+        );
 
-for(
+    }
 
-const balloon
-of
-this.balloons
+    // =========================
+    // Hover Detection
+    // =========================
 
-){
+    checkHover() {
 
-if(
+        if (
+            !cursor.visible
+        ) {
 
-balloon
-.getHoverPercent()
+            this.resetAllHover();
 
->=1
+            return;
 
-){
+        }
 
-return balloon;
+        this.balloons.forEach(
 
-}
+            balloon => {
 
-}
+                const inside =
 
-return null;
+                    balloon.contains(
 
-}
+                        cursor.x,
 
-draw(ctx){
+                        cursor.y
 
-this.balloons.forEach(
+                    );
 
-balloon=>{
+                if (
+                    inside
+                ) {
 
-balloon.draw(ctx);
+                    balloon.startHover();
 
-}
+                }
+                else {
 
-);
+                    balloon.resetHover();
 
-}
+                }
+
+            }
+
+        );
+
+    }
+
+    // =========================
+    // Selected Balloon
+    // =========================
+
+    getSelectedBalloon() {
+
+        for (
+
+            const balloon
+            of
+            this.balloons
+
+        ) {
+
+            if (
+
+                balloon.selected
+
+            ) {
+
+                continue;
+
+            }
+
+            const progress =
+
+                balloon
+                    .getHoverPercent();
+
+            if (
+                progress >= 1
+            ) {
+
+                return balloon;
+
+            }
+
+        }
+
+        return null;
+
+    }
+
+    // =========================
+    // Reset Hover
+    // =========================
+
+    resetAllHover() {
+
+        this.balloons.forEach(
+
+            balloon => {
+
+                balloon.resetHover();
+
+            }
+
+        );
+
+    }
+
+    // =========================
+    // Clear Balloons
+    // =========================
+
+    clear() {
+
+        this.balloons = [];
+
+    }
+
+    // =========================
+    // Shuffle
+    // =========================
+
+    shuffleArray(array) {
+
+        for (
+
+            let i =
+                array.length - 1;
+
+            i > 0;
+
+            i--
+
+        ) {
+
+            const j =
+
+                Math.floor(
+
+                    Math.random()
+                    *
+                    (i + 1)
+
+                );
+
+            [
+
+                array[i],
+
+                array[j]
+
+            ] = [
+
+                array[j],
+
+                array[i]
+
+            ];
+
+        }
+
+        return array;
+
+    }
 
 }
