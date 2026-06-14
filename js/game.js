@@ -1,6 +1,11 @@
 // =====================================
-// Canvas Setup
+// Balloon Quiz Engine
+// Phase 3.4
 // =====================================
+
+// ----------------------
+// Canvas
+// ----------------------
 
 const canvas =
 document.getElementById(
@@ -27,34 +32,24 @@ window.addEventListener(
 resizeCanvas
 );
 
-// =====================================
+// ----------------------
 // Game State
-// =====================================
+// ----------------------
 
 let score = 0;
 
-let gameStarted = true;
+let fps = 0;
 
 let frameCount = 0;
 
-let fps = 0;
-
-let lastTime =
+let lastFrameTime =
 performance.now();
 
-// =====================================
-// Managers
-// =====================================
+let gameOver = false;
 
-const questionManager =
-new QuestionManager();
-
-const balloonManager =
-new BalloonManager();
-
-// =====================================
-// UI Elements
-// =====================================
+// ----------------------
+// UI
+// ----------------------
 
 const scoreElement =
 document.getElementById(
@@ -71,11 +66,32 @@ document.getElementById(
 "questionBox"
 );
 
-// =====================================
-// Load Question
-// =====================================
+// ----------------------
+// Managers
+// ----------------------
 
-function loadCurrentQuestion(){
+const questionManager =
+new QuestionManager();
+
+const balloonManager =
+new BalloonManager();
+
+const particleManager =
+new ParticleManager();
+
+const floatingTextManager =
+new FloatingTextManager();
+
+const soundManager =
+new SoundManager();
+
+// ----------------------
+// Load First Question
+// ----------------------
+
+loadQuestion();
+
+function loadQuestion(){
 
 const question =
 questionManager.current();
@@ -97,11 +113,9 @@ question
 
 }
 
-loadCurrentQuestion();
-
-// =====================================
+// ----------------------
 // Background
-// =====================================
+// ----------------------
 
 function drawBackground(){
 
@@ -135,9 +149,9 @@ canvas.height
 
 }
 
-// =====================================
+// ----------------------
 // FPS
-// =====================================
+// ----------------------
 
 function updateFPS(){
 
@@ -147,16 +161,233 @@ performance.now();
 fps =
 Math.round(
 1000 /
-(now - lastTime)
+(now-lastFrameTime)
 );
 
-lastTime = now;
+lastFrameTime =
+now;
 
 }
 
-// =====================================
-// Debug Layer
-// =====================================
+// ----------------------
+// Hover Detection
+// ----------------------
+
+function processSelection(){
+
+if(gameOver)
+return;
+
+balloonManager.checkHover();
+
+const selected =
+
+balloonManager
+.getSelectedBalloon();
+
+if(!selected)
+return;
+
+selectBalloon(
+selected
+);
+
+}
+
+// ----------------------
+// Balloon Selected
+// ----------------------
+
+function selectBalloon(
+balloon
+){
+
+if(balloon.selected)
+return;
+
+balloon.selected =
+true;
+
+// ----------------------
+// POP Effect
+// ----------------------
+
+particleManager.explode(
+
+balloon.x,
+
+balloon.y,
+
+balloon.correct
+?
+"#4CAF50"
+:
+"#F44336"
+
+);
+
+soundManager.playPop();
+
+// ----------------------
+// Correct
+// ----------------------
+
+if(
+balloon.correct
+){
+
+addScore(
+CONFIG.CORRECT_SCORE
+);
+
+floatingTextManager.add(
+
+balloon.x,
+
+balloon.y,
+
+`+${CONFIG.CORRECT_SCORE}`,
+
+"#00FF00"
+
+);
+
+soundManager
+.playCorrect();
+
+}
+else{
+
+addScore(
+CONFIG.WRONG_SCORE
+);
+
+floatingTextManager.add(
+
+balloon.x,
+
+balloon.y,
+
+`${CONFIG.WRONG_SCORE}`,
+
+"#FF4444"
+
+);
+
+soundManager
+.playWrong();
+
+}
+
+// ----------------------
+// Clear Balloons
+// ----------------------
+
+balloonManager.balloons =
+[];
+
+// ----------------------
+// Next Question
+// ----------------------
+
+setTimeout(()=>{
+
+nextQuestion();
+
+},800);
+
+}
+
+// ----------------------
+// Score
+// ----------------------
+
+function addScore(
+points
+){
+
+score += points;
+
+if(score < 0){
+
+score = 0;
+
+}
+
+scoreElement.innerText =
+score;
+
+}
+
+// ----------------------
+// Next Question
+// ----------------------
+
+function nextQuestion(){
+
+const next =
+questionManager.next();
+
+if(!next){
+
+showGameOver();
+
+return;
+
+}
+
+questionElement.innerText =
+next.question;
+
+balloonManager.spawn(
+next
+);
+
+}
+
+// ----------------------
+// Game Over
+// ----------------------
+
+function showGameOver(){
+
+gameOver = true;
+
+questionElement.innerHTML =
+
+`
+🎉 จบเกม 🎉
+<br>
+คะแนนรวม ${score}
+`;
+
+balloonManager.balloons =
+[];
+
+}
+
+// ----------------------
+// Reset Game
+// ----------------------
+
+function resetGame(){
+
+score = 0;
+
+gameOver = false;
+
+scoreElement.innerText =
+0;
+
+questionManager.index = 0;
+
+loadQuestion();
+
+}
+
+// ----------------------
+// Debug
+// ----------------------
 
 function drawDebug(){
 
@@ -180,7 +411,7 @@ ctx.fillText(
 
 ctx.fillText(
 
-`Cursor X : ${Math.round(cursor.x)}`,
+`Score : ${score}`,
 
 20,
 
@@ -190,7 +421,7 @@ ctx.fillText(
 
 ctx.fillText(
 
-`Cursor Y : ${Math.round(cursor.y)}`,
+`Cursor X : ${Math.round(cursor.x)}`,
 
 20,
 
@@ -200,7 +431,7 @@ ctx.fillText(
 
 ctx.fillText(
 
-`Visible : ${cursor.visible}`,
+`Cursor Y : ${Math.round(cursor.y)}`,
 
 20,
 
@@ -208,255 +439,69 @@ ctx.fillText(
 
 );
 
+ctx.fillText(
+
+`Visible : ${cursor.visible}`,
+
+20,
+
+240
+
+);
+
 ctx.restore();
 
 }
 
-// =====================================
-// Cursor
-// =====================================
+// ----------------------
+// Main Update
+// ----------------------
 
-function drawCursor(){
+function update(){
 
 cursor.update();
 
-cursor.draw(
-ctx
-);
-
-}
-
-// =====================================
-// Hover Detection
-// =====================================
-
-function processSelection(){
-
-balloonManager.checkHover();
-
-const selected =
-
-balloonManager
-.getSelectedBalloon();
-
-if(
-selected
-){
-
-selectBalloon(
-selected
-);
-
-}
-
-}
-
-// =====================================
-// Select Balloon
-// =====================================
-
-function selectBalloon(
-balloon
-){
-
-if(
-balloon.selected
-)
-return;
-
-balloon.selected =
-true;
-
-if(
-balloon.correct
-){
-
-addScore(
-CONFIG.CORRECT_SCORE
-);
-
-console.log(
-"Correct"
-);
-
-}
-else{
-
-addScore(
-CONFIG.WRONG_SCORE
-);
-
-console.log(
-"Wrong"
-);
-
-}
-
-// Phase 3.4
-// Particle Explosion
-
-console.log(
-"POP!"
-);
-
-setTimeout(()=>{
-
-nextQuestion();
-
-},500);
-
-}
-
-// =====================================
-// Update Game
-// =====================================
-
-function updateGame(){
-
 balloonManager.update();
+
+particleManager.update();
+
+floatingTextManager.update();
 
 processSelection();
 
 }
 
-// =====================================
-// Draw Game
-// =====================================
+// ----------------------
+// Main Draw
+// ----------------------
 
-function drawGame(){
+function draw(){
+
+drawBackground();
 
 balloonManager.draw(
 ctx
 );
 
-}
-
-// =====================================
-// Score
-// =====================================
-
-window.addScore =
-function(points){
-
-score += points;
-
-if(
-score < 0
-){
-
-score = 0;
-
-}
-
-scoreElement.innerText =
-score;
-
-};
-
-// =====================================
-// Next Question
-// =====================================
-
-window.nextQuestion =
-function(){
-
-const next =
-questionManager.next();
-
-if(!next){
-
-showGameOver();
-
-return;
-
-}
-
-questionElement.innerText =
-next.question;
-
-balloonManager.spawn(
-next
+particleManager.draw(
+ctx
 );
 
-};
+floatingTextManager.draw(
+ctx
+);
 
-// =====================================
-// Game Over
-// =====================================
+cursor.draw(
+ctx
+);
 
-function showGameOver(){
-
-questionElement.innerText =
-"🎉 จบเกม 🎉";
-
-balloonManager.balloons =
-[];
+drawDebug();
 
 }
 
-// =====================================
-// Reset Game
-// =====================================
-
-window.resetGame =
-function(){
-
-score = 0;
-
-scoreElement.innerText =
-0;
-
-questionManager.index = 0;
-
-loadCurrentQuestion();
-
-};
-
-// =====================================
-// Keyboard Debug
-// =====================================
-
-window.addEventListener(
-
-"keydown",
-
-event=>{
-
-switch(
-event.key
-){
-
-case "n":
-
-nextQuestion();
-
-break;
-
-case "+":
-
-addScore(
-10
-);
-
-break;
-
-case "-":
-
-addScore(
--5
-);
-
-break;
-
-}
-
-}
-
-);
-
-// =====================================
+// ----------------------
 // Main Loop
-// =====================================
+// ----------------------
 
 function animate(){
 
@@ -464,15 +509,9 @@ frameCount++;
 
 updateFPS();
 
-drawBackground();
+update();
 
-updateGame();
-
-drawGame();
-
-drawCursor();
-
-drawDebug();
+draw();
 
 requestAnimationFrame(
 animate
@@ -481,3 +520,58 @@ animate
 }
 
 animate();
+
+// ----------------------
+// Global Debug
+// ----------------------
+
+window.nextQuestion =
+nextQuestion;
+
+window.resetGame =
+resetGame;
+
+window.addScore =
+addScore;
+
+// ----------------------
+// Keyboard Testing
+// ----------------------
+
+window.addEventListener(
+
+"keydown",
+
+e=>{
+
+switch(e.key){
+
+case "n":
+
+nextQuestion();
+
+break;
+
+case "r":
+
+resetGame();
+
+break;
+
+case "+":
+
+addScore(10);
+
+break;
+
+case "-":
+
+addScore(-5);
+
+break;
+
+}
+
+}
+
+);
