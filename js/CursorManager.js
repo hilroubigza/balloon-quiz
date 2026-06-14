@@ -1,26 +1,38 @@
 window.cursor = {
 
 x:0,
-
 y:0,
 
-visible:true,
+targetX:0,
+targetY:0,
 
-update(
-x,
-y
-){
+visible:false,
 
-this.x=x;
-this.y=y;
+update(){
+
+this.x +=
+(this.targetX-this.x)
+*
+CONFIG.HAND_SMOOTHING;
+
+this.y +=
+(this.targetY-this.y)
+*
+CONFIG.HAND_SMOOTHING;
+
+},
+
+setPosition(x,y){
+
+this.targetX=x;
+this.targetY=y;
 
 },
 
 draw(ctx){
 
-if(
-!this.visible
-) return;
+if(!this.visible)
+return;
 
 ctx.save();
 
@@ -40,15 +52,13 @@ Math.PI*2
 
 );
 
-ctx.fillStyle=
-"#00FFFF";
+ctx.fillStyle="#00FFFF";
 
 ctx.fill();
 
-ctx.strokeStyle=
-"white";
+ctx.strokeStyle="white";
 
-ctx.lineWidth=3;
+ctx.lineWidth=4;
 
 ctx.stroke();
 
@@ -57,15 +67,3 @@ ctx.restore();
 }
 
 };
-
-window.addEventListener(
-"mousemove",
-e=>{
-
-cursor.update(
-e.clientX,
-e.clientY
-);
-
-}
-);
