@@ -55,15 +55,15 @@ resizeCanvas
 // ----------------------
 // State
 // ----------------------
-let flowManager;
+
 
 let score = 0;
 
-let fps = 0;
+
 
 let gameOver = false;
 
-let frameCount = 0;
+
 
 let lastFrameTime =
 performance.now();
@@ -404,25 +404,7 @@ nextQuestion();
 
 }
 
-// ----------------------
-// FPS
-// ----------------------
 
-function updateFPS(){
-
-const now =
-performance.now();
-
-fps =
-Math.round(
-1000 /
-(now-lastFrameTime)
-);
-
-lastFrameTime =
-now;
-
-}
 
 // ----------------------
 // Update
@@ -483,73 +465,7 @@ canvas.height
 
 }
 
-// ----------------------
-// Debug
-// ----------------------
 
-function drawDebug(){
-
-ctx.save();
-
-ctx.fillStyle =
-"white";
-
-ctx.font =
-"20px Arial";
-
-ctx.fillText(
-
-`FPS : ${fps}`,
-
-20,
-
-120
-
-);
-
-ctx.fillText(
-
-`Score : ${score}`,
-
-20,
-
-150
-
-);
-
-ctx.fillText(
-
-`Cursor X : ${Math.round(cursor.x)}`,
-
-20,
-
-180
-
-);
-
-ctx.fillText(
-
-`Cursor Y : ${Math.round(cursor.y)}`,
-
-20,
-
-210
-
-);
-
-ctx.fillText(
-
-`Visible : ${cursor.visible}`,
-
-20,
-
-240
-
-);
-
-ctx.restore();
-
-}
 
 // ----------------------
 // Draw
