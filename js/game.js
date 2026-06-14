@@ -79,13 +79,11 @@ drawBackground();
 
 balloonManager.update();
 
-balloonManager.draw(
-ctx
-);
+balloonManager.draw(ctx);
 
-cursor.draw(
-ctx
-);
+cursor.update();
+
+cursor.draw(ctx);
 
 requestAnimationFrame(
 animate
