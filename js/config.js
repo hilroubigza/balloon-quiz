@@ -2,7 +2,7 @@ const CONFIG = {
 
 GAME_NAME:"Balloon Quiz",
 
-QUESTION_TIME:20,
+QUESTION_TIME:10,
 
 BALLOON_RADIUS:90,
 
