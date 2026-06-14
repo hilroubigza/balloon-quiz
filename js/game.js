@@ -129,7 +129,8 @@ return;
   
 
 loadQuestion();
-
+flowManager =
+new GameFlowManager();
 animate();
 
 }
