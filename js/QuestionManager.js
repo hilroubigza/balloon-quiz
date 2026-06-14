@@ -4,11 +4,18 @@ constructor(){
 
 this.index=0;
 
-this.questions=
-QUESTIONS;
+this.questions = [];
 
 }
+  
+async load(){
 
+this.questions =
+
+await loadQuestions();
+
+}
+  
 current(){
 
 return this.questions[
