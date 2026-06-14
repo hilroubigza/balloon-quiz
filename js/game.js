@@ -1,12 +1,6 @@
 // =====================================
-// Balloon Quiz Engine
-// Phase 4.0
-// Google Sheet Version
+// GLOBALS
 // =====================================
-
-// ----------------------
-// Canvas
-// ----------------------
 
 const canvas =
 document.getElementById("gameCanvas");
@@ -14,660 +8,529 @@ document.getElementById("gameCanvas");
 const ctx =
 canvas.getContext("2d");
 
-const GAME_WIDTH = 1920;
-const GAME_HEIGHT = 1080;
+let score = 0;
+let combo = 0;
 
-function resizeCanvas(){
+let gameStarted = false;
+let gameEnded = false;
 
-const screenWidth =
-window.innerWidth;
-
-const screenHeight =
-window.innerHeight;
-
-const scale =
-Math.min(
-screenWidth / GAME_WIDTH,
-screenHeight / GAME_HEIGHT
-);
-
-canvas.width =
-GAME_WIDTH;
-
-canvas.height =
-GAME_HEIGHT;
-
-canvas.style.width =
-(GAME_WIDTH * scale) + "px";
-
-canvas.style.height =
-(GAME_HEIGHT * scale) + "px";
-
-}
-
-resizeCanvas();
-
-window.addEventListener(
-"resize",
-resizeCanvas
-);
-
-// ----------------------
-// State
-// ----------------------
+let questionManager;
+let balloonManager;
+let particleManager;
+let floatingTextManager;
+let soundManager;
 let flowManager;
 
-let score = 0;
-
-let fps = 0;
-
-let gameOver = false;
-
-let frameCount = 0;
-
-let lastFrameTime =
-performance.now();
-
-// ----------------------
+// =====================================
 // UI
-// ----------------------
+// =====================================
+
+const questionElement =
+document.getElementById("question");
 
 const scoreElement =
 document.getElementById("score");
 
-const timerElement =
-document.getElementById("timer");
+const gameOverScreen =
+document.getElementById("gameOver");
 
-const questionElement =
-document.getElementById("questionBox");
+const finalScoreElement =
+document.getElementById("finalScore");
 
-// ----------------------
-// Managers
-// ----------------------
+// =====================================
+// RESIZE
+// =====================================
 
-const questionManager =
-new QuestionManager();
+function resizeCanvas(){
 
-const balloonManager =
-new BalloonManager();
+    const aspect = 16 / 9;
 
-const particleManager =
-new ParticleManager();
+    let w = window.innerWidth;
+    let h = window.innerHeight;
 
-const floatingTextManager =
-new FloatingTextManager();
+    if(w / h > aspect){
 
-const soundManager =
-new SoundManager();
+        w = h * aspect;
 
-// ----------------------
-// Initialize Game
-// ----------------------
+    }else{
+
+        h = w / aspect;
+
+    }
+
+    canvas.width = w;
+    canvas.height = h;
+
+}
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+// =====================================
+// INIT
+// =====================================
 
 async function initGame(){
 
-try{
+    resizeCanvas();
 
-questionElement.innerHTML =
-"กำลังโหลดคำถาม...";
+    questionManager =
+    new QuestionManager();
 
-await questionManager.load();
+    balloonManager =
+    new BalloonManager();
 
-if(
-!questionManager.questions ||
-questionManager.questions.length===0
-){
+    particleManager =
+    new ParticleManager();
 
-questionElement.innerHTML =
-"ไม่พบข้อมูลคำถาม";
+    floatingTextManager =
+    new FloatingTextManager();
 
-return;
+    soundManager =
+    new SoundManager();
 
-}
-  
+    flowManager =
+    new GameFlowManager();
 
-loadQuestion();
+    try{
 
-animate();
+        await questionManager.load();
 
-}
-catch(error){
+        console.log(
+            questionManager.questions
+        );
 
-console.error(error);
+        if(
+            questionManager.questions.length === 0
+        ){
 
-questionElement.innerHTML =
-"โหลดคำถามไม่สำเร็จ";
+            throw new Error(
+                "No Questions"
+            );
 
-}
+        }
 
-}
+        gameStarted = true;
 
-// ----------------------
-// Question
-// ----------------------
+        loadCurrentQuestion();
 
-function loadQuestion(){
+        gameLoop();
 
-const question =
-questionManager.current();
+    }
+    catch(error){
 
-if(!question){
+        console.error(error);
 
-showGameOver();
+        questionElement.innerHTML =
+        "โหลดคำถามไม่สำเร็จ";
 
-return;
-
-}
-
-questionElement.innerHTML =
-question.question;
-
-balloonManager.spawn(
-question
-);
+    }
 
 }
+
+// =====================================
+// LOAD QUESTION
+// =====================================
+
+function loadCurrentQuestion(){
+
+    const question =
+    questionManager.current();
+
+    if(!question){
+
+        endGame();
+
+        return;
+
+    }
+
+    questionElement.innerHTML =
+    question.question;
+
+    balloonManager.spawn(
+        question
+    );
+
+    flowManager.startQuestion();
+
+}
+
+// =====================================
+// NEXT QUESTION
+// =====================================
 
 function nextQuestion(){
 
-const next =
-questionManager.next();
+    questionManager.index++;
 
-if(!next){
+    if(
 
-showGameOver();
+        questionManager.index >=
+        questionManager.questions.length
 
-return;
+    ){
+
+        endGame();
+
+        return;
+
+    }
+
+    loadCurrentQuestion();
 
 }
 
-questionElement.innerHTML =
-next.question;
-
-balloonManager.spawn(
-next
-);
-
-}
-
-// ----------------------
-// Score
-// ----------------------
+// =====================================
+// SCORE
+// =====================================
 
 function addScore(points){
 
-score += points;
+    score += points;
 
-if(score < 0){
-
-score = 0;
-
-}
-
-scoreElement.textContent =
-score;
+    scoreElement.innerHTML =
+    score;
 
 }
 
-// ----------------------
-// Save Score
-// ----------------------
+// =====================================
+// ANSWER
+// =====================================
 
-async function saveScore(){
+function handleAnswer(balloon){
 
-try{
+    balloon.selected = true;
 
-if(
-typeof API_URL ===
-"undefined"
-){
-return;
-}
+    if(balloon.correct){
 
-await fetch(
+        combo++;
 
-API_URL,
+        const points =
+        10 * combo;
 
-{
+        addScore(points);
 
-method:"POST",
+        floatingTextManager.add(
+            "+" + points,
+            balloon.x,
+            balloon.y
+        );
 
-headers:{
+        if(
+            particleManager.explode
+        ){
 
-"Content-Type":
-"application/json"
+            particleManager.explode(
+                balloon.x,
+                balloon.y
+            );
 
-},
+        }
 
-body:JSON.stringify({
+    }
+    else{
 
-name:"Balloon Quiz",
+        combo = 0;
 
-score:score
+        floatingTextManager.add(
+            "ผิด",
+            balloon.x,
+            balloon.y
+        );
 
-})
+    }
 
-}
+    setTimeout(
 
-);
+        ()=>{
 
-}
-catch(error){
+            nextQuestion();
 
-console.error(
-"Save Score Error",
-error
-);
+        },
 
-}
+        CONFIG.RESULT_DELAY
 
-}
-
-// ----------------------
-// Game Over
-// ----------------------
-
-async function showGameOver(){
-
-gameOver = true;
-
-balloonManager.clear();
-
-await saveScore();
-
-questionElement.innerHTML =
-
-`🎉 จบเกม 🎉 <br>
-คะแนนรวม <br>
-${score}`;
+    );
 
 }
 
-// ----------------------
-// Selection
-// ----------------------
+// =====================================
+// TIMEOUT
+// =====================================
 
-function processSelection(){
+function handleTimeout(){
 
-if(gameOver)
-return;
+    combo = 0;
 
-balloonManager.checkHover();
+    floatingTextManager.add(
 
-const selected =
+        "หมดเวลา",
 
-balloonManager
-.getSelectedBalloon();
+        canvas.width / 2,
 
-if(
-selected
-){
+        canvas.height / 2
 
-selectBalloon(
-selected
-);
+    );
+
+    nextQuestion();
 
 }
 
-}
+// =====================================
+// GAME OVER
+// =====================================
 
-function selectBalloon(balloon){
+async function endGame(){
 
-if(
-balloon.selected
-)
-return;
+    if(gameEnded)
+    return;
 
-balloon.selected =
-true;
+    gameEnded = true;
 
-// Explosion
+    questionElement.innerHTML =
+    "";
 
-particleManager.explode(
+    balloonManager.clear();
 
-balloon.x,
+    if(
+        finalScoreElement
+    ){
 
-balloon.y,
+        finalScoreElement.innerHTML =
+        score;
 
-balloon.correct
-?
-"#4CAF50"
-:
-"#F44336"
+    }
 
-);
+    if(
+        gameOverScreen
+    ){
 
-// Sound
+        gameOverScreen.style.display =
+        "flex";
 
-soundManager.playPop();
+    }
 
-// Score
+    try{
 
-if(
-balloon.correct
-){
+        await saveScore(
 
-addScore(
-CONFIG.CORRECT_SCORE
-);
+            "Player",
 
-floatingTextManager.add(
+            score
 
-balloon.x,
+        );
 
-balloon.y,
+    }
+    catch(err){
 
-"+" +
-CONFIG.CORRECT_SCORE,
+        console.error(err);
 
-"#00FF00"
-
-);
-
-soundManager
-.playCorrect();
-
-}
-else{
-
-addScore(
-CONFIG.WRONG_SCORE
-);
-
-floatingTextManager.add(
-
-balloon.x,
-
-balloon.y,
-
-CONFIG.WRONG_SCORE,
-
-"#FF4444"
-
-);
-
-soundManager
-.playWrong();
+    }
 
 }
 
-balloonManager.clear();
-
-setTimeout(()=>{
-
-nextQuestion();
-
-},800);
-
-}
-
-// ----------------------
-// FPS
-// ----------------------
-
-function updateFPS(){
-
-const now =
-performance.now();
-
-fps =
-Math.round(
-1000 /
-(now-lastFrameTime)
-);
-
-lastFrameTime =
-now;
-
-}
-
-// ----------------------
-// Update
-// ----------------------
+// =====================================
+// UPDATE
+// =====================================
 
 function update(){
 
-cursor.update();
+    if(
+        !gameStarted
+    ) return;
 
-balloonManager.update();
+    if(
+        gameEnded
+    ) return;
 
-particleManager.update();
+    flowManager.update();
 
-floatingTextManager.update();
+    balloonManager.update();
 
-processSelection();
+    balloonManager.checkHover();
 
-}
+    particleManager.update();
 
-// ----------------------
-// Background
-// ----------------------
+    floatingTextManager.update();
 
-function drawBackground(){
+    const selected =
 
-const gradient =
+    balloonManager
+    .getSelectedBalloon();
 
-ctx.createLinearGradient(
-0,
-0,
-0,
-canvas.height
-);
+    if(selected){
 
-gradient.addColorStop(
-0,
-"#4FC3F7"
-);
+        handleAnswer(
+            selected
+        );
 
-gradient.addColorStop(
-1,
-"#B3E5FC"
-);
+    }
 
-ctx.fillStyle =
-gradient;
+    if(
 
-ctx.fillRect(
+        flowManager.isTimeout()
 
-0,
-0,
+    ){
 
-canvas.width,
+        handleTimeout();
 
-canvas.height
-
-);
+    }
 
 }
 
-// ----------------------
-// Debug
-// ----------------------
+// =====================================
+// DRAW PROGRESS
+// =====================================
 
-function drawDebug(){
+function drawProgress(){
 
-ctx.save();
+    const total =
 
-ctx.fillStyle =
-"white";
+    questionManager.questions.length;
 
-ctx.font =
-"20px Arial";
+    const current =
 
-ctx.fillText(
+    questionManager.index + 1;
 
-`FPS : ${fps}`,
+    const percent =
 
-20,
+    current / total;
 
-120
+    const width =
 
-);
+    canvas.width * 0.5;
 
-ctx.fillText(
+    const x =
 
-`Score : ${score}`,
+    canvas.width * 0.25;
 
-20,
+    const y = 20;
 
-150
+    ctx.fillStyle =
+    "#333";
 
-);
+    ctx.fillRect(
 
-ctx.fillText(
+        x,
 
-`Cursor X : ${Math.round(cursor.x)}`,
+        y,
 
-20,
+        width,
 
-180
+        20
 
-);
+    );
 
-ctx.fillText(
+    ctx.fillStyle =
+    "#4CAF50";
 
-`Cursor Y : ${Math.round(cursor.y)}`,
+    ctx.fillRect(
 
-20,
+        x,
 
-210
+        y,
 
-);
+        width * percent,
 
-ctx.fillText(
+        20
 
-`Visible : ${cursor.visible}`,
-
-20,
-
-240
-
-);
-
-ctx.restore();
+    );
 
 }
 
-// ----------------------
-// Draw
-// ----------------------
+// =====================================
+// DRAW TIMER
+// =====================================
+
+function drawTimer(){
+
+    ctx.fillStyle =
+    "#FFD700";
+
+    ctx.font =
+    "bold 40px Arial";
+
+    ctx.textAlign =
+    "center";
+
+    ctx.fillText(
+
+        "⏳ " +
+
+        flowManager
+        .getTimeText(),
+
+        canvas.width / 2,
+
+        90
+
+    );
+
+}
+
+// =====================================
+// DRAW
+// =====================================
 
 function draw(){
 
-drawBackground();
+    ctx.clearRect(
 
-balloonManager.draw(
-ctx
-);
+        0,
 
-particleManager.draw(
-ctx
-);
+        0,
 
-floatingTextManager.draw(
-ctx
-);
+        canvas.width,
 
-cursor.draw(
-ctx
-);
+        canvas.height
 
-drawDebug();
+    );
 
-}
+    drawProgress();
 
-// ----------------------
-// Main Loop
-// ----------------------
+    drawTimer();
 
-function animate(){
+    balloonManager.draw(ctx);
 
-frameCount++;
+    particleManager.draw(ctx);
 
-updateFPS();
+    floatingTextManager.draw(ctx);
 
-update();
+    if(
 
-draw();
+        cursor &&
+        cursor.visible &&
+        cursor.draw
 
-requestAnimationFrame(
-animate
-);
+    ){
+
+        cursor.draw(ctx);
+
+    }
 
 }
 
-// ----------------------
-// Reset
-// ----------------------
+// =====================================
+// LOOP
+// =====================================
 
-function resetGame(){
+function gameLoop(){
 
-score = 0;
+    update();
 
-gameOver = false;
+    draw();
 
-scoreElement.textContent =
-0;
-
-questionManager.index = 0;
-
-loadQuestion();
+    requestAnimationFrame(
+        gameLoop
+    );
 
 }
 
-window.resetGame =
-resetGame;
-
-window.nextQuestion =
-nextQuestion;
-
-window.addScore =
-addScore;
-
-// ----------------------
-// Keyboard Debug
-// ----------------------
-
-window.addEventListener(
-
-"keydown",
-
-e=>{
-
-switch(e.key){
-
-case "n":
-
-nextQuestion();
-
-break;
-
-case "r":
-
-resetGame();
-
-break;
-
-case "+":
-
-addScore(10);
-
-break;
-
-case "-":
-
-addScore(-5);
-
-break;
-
-}
-
-}
-
-);
-
-// ----------------------
-// Start
-// ----------------------
+// =====================================
+// START
+// =====================================
 
 initGame();
