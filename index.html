@@ -21,45 +21,100 @@ href="css/style.css">
 
 <div id="gameContainer">
 
-<div id="hud">
+    <!-- HUD -->
 
-<div id="scorePanel">
+    <div id="hud">
 
-🏆 คะแนน :
-<span id="score">
-0
-</span>
+        <div id="scorePanel">
+
+            🏆 คะแนน :
+            <span id="score">
+                0
+            </span>
+
+        </div>
+
+        <div id="timerPanel">
+
+            ⏳
+            <span id="timer">
+                10
+            </span>
+
+        </div>
+
+    </div>
+
+    <!-- Question -->
+
+    <div id="questionBox">
+
+        กำลังโหลดคำถาม...
+
+    </div>
+
+    <!-- Canvas -->
+
+    <canvas id="gameCanvas">
+    </canvas>
+
+    <!-- Webcam -->
+
+    <video
+        id="webcam"
+        autoplay
+        playsinline
+        muted>
+    </video>
 
 </div>
 
-<div id="timerPanel">
+<!-- ========================= -->
+<!-- Game Over -->
+<!-- ========================= -->
 
-⏳
-<span id="timer">
-20
-</span>
+<div
+    id="gameOver"
+    style="
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.85);
+    z-index:999;
+    color:white;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    ">
+
+    <h1>
+        🎉 จบเกม 🎉
+    </h1>
+
+    <h2>
+
+        คะแนนรวม
+
+        <span id="finalScore">
+
+            0
+
+        </span>
+
+    </h2>
+
+    <button
+        onclick="location.reload()">
+
+        เล่นอีกครั้ง
+
+    </button>
 
 </div>
 
-</div>
-
-<div id="questionBox">
-
-กำลังโหลดคำถาม...
-
-</div>
-
-<canvas id="gameCanvas">
-</canvas>
-
-<video
-id="webcam"
-autoplay
-playsinline
-muted>
-</video>
-
-</div>
+<!-- ========================= -->
+<!-- Scripts -->
+<!-- ========================= -->
 
 <script src="js/config.js"></script>
 
@@ -89,7 +144,11 @@ muted>
 
 <script src="js/game.js"></script>
 
-<script type="module" src="js/HandTracker.js"></script>
+<script
+type="module"
+src="js/HandTracker.js">
+</script>
 
 </body>
+
 </html>
