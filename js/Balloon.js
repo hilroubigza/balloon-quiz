@@ -29,6 +29,56 @@ CONFIG.BALLOON_SPEED;
 
 }
 
+startHover(){
+
+if(
+this.hoverStart === null
+){
+
+this.hoverStart =
+performance.now();
+
+}
+
+}
+
+resetHover(){
+
+this.hoverStart = null;
+
+this.hoverProgress = 0;
+
+}
+
+getHoverPercent(){
+
+if(
+this.hoverStart === null
+){
+
+return 0;
+
+}
+
+const elapsed =
+
+performance.now()
+-
+this.hoverStart;
+
+return Math.min(
+
+elapsed /
+CONFIG.HOVER_TIME,
+
+1
+
+);
+
+}
+
+
+  
 draw(ctx){
 
 ctx.beginPath();
