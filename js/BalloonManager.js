@@ -88,6 +88,71 @@ balloon.update();
 
 }
 
+  checkHover(){
+
+if(
+!cursor.visible
+)
+return;
+
+this.balloons.forEach(
+
+balloon=>{
+
+if(
+balloon.contains(
+
+cursor.x,
+
+cursor.y
+
+)
+){
+
+balloon.startHover();
+
+}
+else{
+
+balloon.resetHover();
+
+}
+
+}
+
+);
+
+}
+
+  getSelectedBalloon(){
+
+for(
+
+const balloon
+of
+this.balloons
+
+){
+
+if(
+
+balloon
+.getHoverPercent()
+
+>=1
+
+){
+
+return balloon;
+
+}
+
+}
+
+return null;
+
+}
+
 draw(ctx){
 
 this.balloons.forEach(
