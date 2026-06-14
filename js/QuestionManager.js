@@ -14,6 +14,11 @@ this.questions =
 
 await loadQuestions();
 
+console.log(
+"Questions:",
+this.questions
+);
+
 }
   
 current(){
