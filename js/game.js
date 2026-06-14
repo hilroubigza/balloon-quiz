@@ -1,6 +1,7 @@
 // =====================================
 // Balloon Quiz Engine
-// Phase 3.4
+// Phase 4.0
+// Google Sheet Version
 // =====================================
 
 // ----------------------
@@ -8,9 +9,7 @@
 // ----------------------
 
 const canvas =
-document.getElementById(
-"gameCanvas"
-);
+document.getElementById("gameCanvas");
 
 const ctx =
 canvas.getContext("2d");
@@ -26,13 +25,17 @@ window.innerWidth;
 const screenHeight =
 window.innerHeight;
 
-const scale = Math.min(
+const scale =
+Math.min(
 screenWidth / GAME_WIDTH,
 screenHeight / GAME_HEIGHT
 );
 
-canvas.width = GAME_WIDTH;
-canvas.height = GAME_HEIGHT;
+canvas.width =
+GAME_WIDTH;
+
+canvas.height =
+GAME_HEIGHT;
 
 canvas.style.width =
 (GAME_WIDTH * scale) + "px";
@@ -50,38 +53,32 @@ resizeCanvas
 );
 
 // ----------------------
-// Game State
+// State
 // ----------------------
 
 let score = 0;
 
 let fps = 0;
 
+let gameOver = false;
+
 let frameCount = 0;
 
 let lastFrameTime =
 performance.now();
-
-let gameOver = false;
 
 // ----------------------
 // UI
 // ----------------------
 
 const scoreElement =
-document.getElementById(
-"score"
-);
+document.getElementById("score");
 
 const timerElement =
-document.getElementById(
-"timer"
-);
+document.getElementById("timer");
 
 const questionElement =
-document.getElementById(
-"questionBox"
-);
+document.getElementById("questionBox");
 
 // ----------------------
 // Managers
@@ -103,10 +100,49 @@ const soundManager =
 new SoundManager();
 
 // ----------------------
-// Load First Question
+// Initialize Game
 // ----------------------
 
+async function initGame(){
+
+try{
+
+questionElement.innerHTML =
+"กำลังโหลดคำถาม...";
+
+await questionManager.load();
+
+if(
+!questionManager.questions ||
+questionManager.questions.length===0
+){
+
+questionElement.innerHTML =
+"ไม่พบข้อมูลคำถาม";
+
+return;
+
+}
+
 loadQuestion();
+
+animate();
+
+}
+catch(error){
+
+console.error(error);
+
+questionElement.innerHTML =
+"โหลดคำถามไม่สำเร็จ";
+
+}
+
+}
+
+// ----------------------
+// Question
+// ----------------------
 
 function loadQuestion(){
 
@@ -121,7 +157,7 @@ return;
 
 }
 
-questionElement.innerText =
+questionElement.innerHTML =
 question.question;
 
 balloonManager.spawn(
@@ -130,39 +166,236 @@ question
 
 }
 
+function nextQuestion(){
+
+const next =
+questionManager.next();
+
+if(!next){
+
+showGameOver();
+
+return;
+
+}
+
+questionElement.innerHTML =
+next.question;
+
+balloonManager.spawn(
+next
+);
+
+}
+
 // ----------------------
-// Background
+// Score
 // ----------------------
 
-function drawBackground(){
+function addScore(points){
 
-const gradient =
-ctx.createLinearGradient(
-0,
-0,
-0,
-canvas.height
+score += points;
+
+if(score < 0){
+
+score = 0;
+
+}
+
+scoreElement.textContent =
+score;
+
+}
+
+// ----------------------
+// Save Score
+// ----------------------
+
+async function saveScore(){
+
+try{
+
+if(
+typeof API_URL ===
+"undefined"
+){
+return;
+}
+
+await fetch(
+
+API_URL,
+
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":
+"application/json"
+
+},
+
+body:JSON.stringify({
+
+name:"Balloon Quiz",
+
+score:score
+
+})
+
+}
+
 );
 
-gradient.addColorStop(
-0,
-"#4FC3F7"
+}
+catch(error){
+
+console.error(
+"Save Score Error",
+error
 );
 
-gradient.addColorStop(
-1,
-"#B3E5FC"
+}
+
+}
+
+// ----------------------
+// Game Over
+// ----------------------
+
+async function showGameOver(){
+
+gameOver = true;
+
+balloonManager.clear();
+
+await saveScore();
+
+questionElement.innerHTML =
+
+`🎉 จบเกม 🎉 <br>
+คะแนนรวม <br>
+${score}`;
+
+}
+
+// ----------------------
+// Selection
+// ----------------------
+
+function processSelection(){
+
+if(gameOver)
+return;
+
+balloonManager.checkHover();
+
+const selected =
+
+balloonManager
+.getSelectedBalloon();
+
+if(
+selected
+){
+
+selectBalloon(
+selected
 );
 
-ctx.fillStyle =
-gradient;
+}
 
-ctx.fillRect(
-0,
-0,
-canvas.width,
-canvas.height
+}
+
+function selectBalloon(balloon){
+
+if(
+balloon.selected
+)
+return;
+
+balloon.selected =
+true;
+
+// Explosion
+
+particleManager.explode(
+
+balloon.x,
+
+balloon.y,
+
+balloon.correct
+?
+"#4CAF50"
+:
+"#F44336"
+
 );
+
+// Sound
+
+soundManager.playPop();
+
+// Score
+
+if(
+balloon.correct
+){
+
+addScore(
+CONFIG.CORRECT_SCORE
+);
+
+floatingTextManager.add(
+
+balloon.x,
+
+balloon.y,
+
+"+" +
+CONFIG.CORRECT_SCORE,
+
+"#00FF00"
+
+);
+
+soundManager
+.playCorrect();
+
+}
+else{
+
+addScore(
+CONFIG.WRONG_SCORE
+);
+
+floatingTextManager.add(
+
+balloon.x,
+
+balloon.y,
+
+CONFIG.WRONG_SCORE,
+
+"#FF4444"
+
+);
+
+soundManager
+.playWrong();
+
+}
+
+balloonManager.clear();
+
+setTimeout(()=>{
+
+nextQuestion();
+
+},800);
 
 }
 
@@ -187,218 +420,61 @@ now;
 }
 
 // ----------------------
-// Hover Detection
+// Update
 // ----------------------
 
-function processSelection(){
+function update(){
 
-if(gameOver)
-return;
+cursor.update();
 
-balloonManager.checkHover();
+balloonManager.update();
 
-const selected =
+particleManager.update();
 
-balloonManager
-.getSelectedBalloon();
+floatingTextManager.update();
 
-if(!selected)
-return;
+processSelection();
 
-selectBalloon(
-selected
+}
+
+// ----------------------
+// Background
+// ----------------------
+
+function drawBackground(){
+
+const gradient =
+
+ctx.createLinearGradient(
+0,
+0,
+0,
+canvas.height
 );
 
-}
-
-// ----------------------
-// Balloon Selected
-// ----------------------
-
-function selectBalloon(
-balloon
-){
-
-if(balloon.selected)
-return;
-
-balloon.selected =
-true;
-
-// ----------------------
-// POP Effect
-// ----------------------
-
-particleManager.explode(
-
-balloon.x,
-
-balloon.y,
-
-balloon.correct
-?
-"#4CAF50"
-:
-"#F44336"
-
+gradient.addColorStop(
+0,
+"#4FC3F7"
 );
 
-soundManager.playPop();
-
-// ----------------------
-// Correct
-// ----------------------
-
-if(
-balloon.correct
-){
-
-addScore(
-CONFIG.CORRECT_SCORE
+gradient.addColorStop(
+1,
+"#B3E5FC"
 );
 
-floatingTextManager.add(
+ctx.fillStyle =
+gradient;
 
-balloon.x,
+ctx.fillRect(
 
-balloon.y,
+0,
+0,
 
-`+${CONFIG.CORRECT_SCORE}`,
+canvas.width,
 
-"#00FF00"
-
-);
-
-soundManager
-.playCorrect();
-
-}
-else{
-
-addScore(
-CONFIG.WRONG_SCORE
-);
-
-floatingTextManager.add(
-
-balloon.x,
-
-balloon.y,
-
-`${CONFIG.WRONG_SCORE}`,
-
-"#FF4444"
+canvas.height
 
 );
-
-soundManager
-.playWrong();
-
-}
-
-// ----------------------
-// Clear Balloons
-// ----------------------
-
-balloonManager.balloons =
-[];
-
-// ----------------------
-// Next Question
-// ----------------------
-
-setTimeout(()=>{
-
-nextQuestion();
-
-},800);
-
-}
-
-// ----------------------
-// Score
-// ----------------------
-
-function addScore(
-points
-){
-
-score += points;
-
-if(score < 0){
-
-score = 0;
-
-}
-
-scoreElement.innerText =
-score;
-
-}
-
-// ----------------------
-// Next Question
-// ----------------------
-
-function nextQuestion(){
-
-const next =
-questionManager.next();
-
-if(!next){
-
-showGameOver();
-
-return;
-
-}
-
-questionElement.innerText =
-next.question;
-
-balloonManager.spawn(
-next
-);
-
-}
-
-// ----------------------
-// Game Over
-// ----------------------
-
-function showGameOver(){
-
-gameOver = true;
-
-questionElement.innerHTML =
-
-`
-🎉 จบเกม 🎉
-<br>
-คะแนนรวม ${score}
-`;
-
-balloonManager.balloons =
-[];
-
-}
-
-// ----------------------
-// Reset Game
-// ----------------------
-
-function resetGame(){
-
-score = 0;
-
-gameOver = false;
-
-scoreElement.innerText =
-0;
-
-questionManager.index = 0;
-
-loadQuestion();
 
 }
 
@@ -471,25 +547,7 @@ ctx.restore();
 }
 
 // ----------------------
-// Main Update
-// ----------------------
-
-function update(){
-
-cursor.update();
-
-balloonManager.update();
-
-particleManager.update();
-
-floatingTextManager.update();
-
-processSelection();
-
-}
-
-// ----------------------
-// Main Draw
+// Draw
 // ----------------------
 
 function draw(){
@@ -536,23 +594,36 @@ animate
 
 }
 
-animate();
-
 // ----------------------
-// Global Debug
+// Reset
 // ----------------------
 
-window.nextQuestion =
-nextQuestion;
+function resetGame(){
+
+score = 0;
+
+gameOver = false;
+
+scoreElement.textContent =
+0;
+
+questionManager.index = 0;
+
+loadQuestion();
+
+}
 
 window.resetGame =
 resetGame;
+
+window.nextQuestion =
+nextQuestion;
 
 window.addScore =
 addScore;
 
 // ----------------------
-// Keyboard Testing
+// Keyboard Debug
 // ----------------------
 
 window.addEventListener(
@@ -592,3 +663,9 @@ break;
 }
 
 );
+
+// ----------------------
+// Start
+// ----------------------
+
+initGame();
