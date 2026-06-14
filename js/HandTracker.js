@@ -1,178 +1,251 @@
 import {
-HandLandmarker,
-FilesetResolver
+    HandLandmarker,
+    FilesetResolver
 }
 from
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 
+// =====================================
+// Elements
+// =====================================
+
 const video =
 document.getElementById(
-"webcam"
+    "webcam"
 );
 
 let handLandmarker;
 
 let lastVideoTime = -1;
 
-async function init(){
+// =====================================
+// Init
+// =====================================
 
-const vision =
-await FilesetResolver
-.forVisionTasks(
+async function init() {
 
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    try {
 
-);
+        const vision =
 
-handLandmarker =
+        await FilesetResolver
+        .forVisionTasks(
 
-await HandLandmarker
-.createFromOptions(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
 
-vision,
+        );
 
-{
+        handLandmarker =
 
-baseOptions:{
+        await HandLandmarker
+        .createFromOptions(
 
-modelAssetPath:
+            vision,
 
-"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            {
 
-delegate:"GPU"
+                baseOptions: {
 
-},
+                    modelAssetPath:
 
-runningMode:"VIDEO",
+                    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
 
-numHands:1
+                    delegate: "GPU"
+
+                },
+
+                runningMode: "VIDEO",
+
+                numHands: 1
+
+            }
+
+        );
+
+        await startCamera();
+
+        detectLoop();
+
+        console.log(
+            "✅ Hand Tracker Ready"
+        );
+
+    }
+    catch(error){
+
+        console.error(
+            "Hand Tracker Error:",
+            error
+        );
+
+    }
 
 }
 
-);
-
-await startCamera();
-
-detectLoop();
-
-}
+// =====================================
+// Camera
+// =====================================
 
 async function startCamera(){
 
-const stream =
+    const stream =
 
-await navigator
-.mediaDevices
-.getUserMedia({
+    await navigator
+    .mediaDevices
+    .getUserMedia({
 
-video:{
+        video:{
 
-width:
-CONFIG.CAMERA_WIDTH,
+            width:
+            CONFIG.CAMERA_WIDTH,
 
-height:
-CONFIG.CAMERA_HEIGHT
+            height:
+            CONFIG.CAMERA_HEIGHT,
+
+            facingMode:
+            "user"
+
+        },
+
+        audio:false
+
+    });
+
+    video.srcObject =
+    stream;
+
+    if(
+        !CONFIG.SHOW_WEBCAM
+    ){
+
+        video.style.display =
+        "none";
+
+    }
+
+    await video.play();
 
 }
 
-});
-
-video.srcObject =
-stream;
-
-if(
-!CONFIG.SHOW_WEBCAM
-){
-
-video.style.display=
-"none";
-
-}
-
-await video.play();
-
-}
+// =====================================
+// Hand Processing
+// =====================================
 
 function processHand(
-result
+    result
 ){
 
-if(
-!result.landmarks ||
-result.landmarks.length===0
-){
+    if(
 
-cursor.visible=false;
+        !result.landmarks ||
 
-return;
+        result.landmarks.length === 0
 
-}
+    ){
 
-const hand =
-result.landmarks[0];
+        cursor.visible = false;
 
-const palm =
-hand[9];
+        return;
 
-const screenX =
-window.innerWidth
-*
-(1-palm.x);
+    }
 
-const screenY =
-window.innerHeight
-*
-palm.y;
+    const hand =
+    result.landmarks[0];
 
-cursor.visible=true;
+    // Middle Finger MCP
+    const palm =
+    hand[9];
 
-const rect =
-canvas.getBoundingClientRect();
+    cursor.visible =
+    true;
 
-const x =
-(palm.x * rect.width);
+    // =========================
+    // Canvas Mapping
+    // =========================
 
-const y =
-(palm.y * rect.height);
+    const rect =
+    canvas.getBoundingClientRect();
 
-cursor.setPosition(
-x * (canvas.width / rect.width),
-y * (canvas.height / rect.height)
-);
+    // Mirror Mode
+    const x =
 
-}
+    (1 - palm.x)
+    *
+    rect.width;
 
-async function detectLoop(){
+    const y =
 
-if(
-video.currentTime !==
-lastVideoTime
-){
+    palm.y
+    *
+    rect.height;
 
-lastVideoTime =
-video.currentTime;
+    const canvasX =
 
-const result =
+    x *
+    (
+        canvas.width /
+        rect.width
+    );
 
-handLandmarker
-.detectForVideo(
+    const canvasY =
 
-video,
+    y *
+    (
+        canvas.height /
+        rect.height
+    );
 
-performance.now()
+    cursor.setPosition(
 
-);
+        canvasX,
 
-processHand(
-result
-);
+        canvasY
+
+    );
 
 }
 
-requestAnimationFrame(
-detectLoop
-);
+// =====================================
+// Detection Loop
+// =====================================
+
+function detectLoop(){
+
+    if(
+
+        video.currentTime !==
+        lastVideoTime
+
+    ){
+
+        lastVideoTime =
+        video.currentTime;
+
+        const result =
+
+        handLandmarker
+        .detectForVideo(
+
+            video,
+
+            performance.now()
+
+        );
+
+        processHand(
+            result
+        );
+
+    }
+
+    requestAnimationFrame(
+        detectLoop
+    );
 
 }
+
+// =====================================
+// Start
+// =====================================
 
 init();
