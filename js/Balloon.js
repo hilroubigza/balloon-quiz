@@ -103,7 +103,18 @@ this.correct
 "#4CAF50"
 :
 "#F44336";
+if(
+this.getHoverPercent()
+>0
+){
 
+ctx.shadowBlur =
+40;
+
+ctx.shadowColor =
+"yellow";
+
+}
 ctx.fill();
 
 ctx.fillStyle=
