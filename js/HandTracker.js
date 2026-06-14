@@ -126,9 +126,18 @@ palm.y;
 
 cursor.visible=true;
 
+const rect =
+canvas.getBoundingClientRect();
+
+const x =
+(palm.x * rect.width);
+
+const y =
+(palm.y * rect.height);
+
 cursor.setPosition(
-screenX,
-screenY
+x * (canvas.width / rect.width),
+y * (canvas.height / rect.height)
 );
 
 }
