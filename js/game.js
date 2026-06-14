@@ -55,10 +55,14 @@ resizeCanvas
 // ----------------------
 // State
 // ----------------------
-
+let gameState =
+GameState.LOADING;
 
 let score = 0;
 
+let timer;
+
+let currentQuestion = null;
 
 
 let gameOver = false;
@@ -116,21 +120,26 @@ questionElement.innerHTML =
 await questionManager.load();
 
 if(
-!questionManager.questions ||
 questionManager.questions.length===0
 ){
 
 questionElement.innerHTML =
-"ไม่พบข้อมูลคำถาม";
+"ไม่พบคำถาม";
 
 return;
 
 }
-  
+
+timer =
+new TimerManager(
+CONFIG.QUESTION_TIME
+);
+
+gameState =
+GameState.QUESTION;
 
 loadQuestion();
-flowManager =
-new GameFlowManager();
+
 animate();
 
 }
@@ -151,10 +160,11 @@ questionElement.innerHTML =
 
 function loadQuestion(){
 
-const question =
+currentQuestion =
+
 questionManager.current();
 
-if(!question){
+if(!currentQuestion){
 
 showGameOver();
 
@@ -163,17 +173,21 @@ return;
 }
 
 questionElement.innerHTML =
-question.question;
+
+currentQuestion.question;
 
 balloonManager.spawn(
-question
+currentQuestion
 );
+
+timer.start();
 
 }
 
 function nextQuestion(){
 
 const next =
+
 questionManager.next();
 
 if(!next){
@@ -181,6 +195,47 @@ if(!next){
 showGameOver();
 
 return;
+
+}
+
+loadQuestion();
+
+}
+
+function handleTimeout(){
+
+if(
+gameState !==
+GameState.QUESTION
+){
+
+return;
+
+}
+
+gameState =
+GameState.RESULT;
+
+floatingTextManager.add(
+
+canvas.width/2,
+
+canvas.height/2,
+
+"หมดเวลา",
+
+"#FFFF00"
+
+);
+
+setTimeout(()=>{
+
+gameState =
+GameState.QUESTION;
+
+nextQuestion();
+
+},1000);
 
 }
 
@@ -272,7 +327,8 @@ error
 
 async function showGameOver(){
 
-gameOver = true;
+gameState =
+GameState.GAME_OVER;
 
 balloonManager.clear();
 
@@ -280,9 +336,8 @@ await saveScore();
 
 questionElement.innerHTML =
 
-`🎉 จบเกม 🎉 <br>
-คะแนนรวม <br>
-${score}`;
+`🎉 จบเกม<br>
+คะแนนรวม ${score}`;
 
 }
 
@@ -414,6 +469,16 @@ function update(){
 
 cursor.update();
 
+timer.update();
+
+if(
+timer.isFinished()
+){
+
+handleTimeout();
+
+}
+
 balloonManager.update();
 
 particleManager.update();
@@ -421,6 +486,10 @@ particleManager.update();
 floatingTextManager.update();
 
 processSelection();
+
+timerElement.textContent =
+
+timer.getDisplay();
 
 }
 
