@@ -1,6 +1,6 @@
-// ======================
+// =====================================
 // Canvas Setup
-// ======================
+// =====================================
 
 const canvas =
 document.getElementById(
@@ -27,9 +27,9 @@ window.addEventListener(
 resizeCanvas
 );
 
-// ======================
+// =====================================
 // Game State
-// ======================
+// =====================================
 
 let score = 0;
 
@@ -37,9 +37,14 @@ let gameStarted = true;
 
 let frameCount = 0;
 
-// ======================
+let fps = 0;
+
+let lastTime =
+performance.now();
+
+// =====================================
 // Managers
-// ======================
+// =====================================
 
 const questionManager =
 new QuestionManager();
@@ -47,9 +52,9 @@ new QuestionManager();
 const balloonManager =
 new BalloonManager();
 
-// ======================
-// UI
-// ======================
+// =====================================
+// UI Elements
+// =====================================
 
 const scoreElement =
 document.getElementById(
@@ -66,9 +71,9 @@ document.getElementById(
 "questionBox"
 );
 
-// ======================
-// Load First Question
-// ======================
+// =====================================
+// Load Question
+// =====================================
 
 function loadCurrentQuestion(){
 
@@ -77,10 +82,10 @@ questionManager.current();
 
 if(!question){
 
-questionElement.innerText =
-"จบเกม";
+showGameOver();
 
 return;
+
 }
 
 questionElement.innerText =
@@ -94,9 +99,9 @@ question
 
 loadCurrentQuestion();
 
-// ======================
+// =====================================
 // Background
-// ======================
+// =====================================
 
 function drawBackground(){
 
@@ -130,14 +135,9 @@ canvas.height
 
 }
 
-// ======================
-// FPS Counter
-// ======================
-
-let fps = 0;
-
-let lastTime =
-performance.now();
+// =====================================
+// FPS
+// =====================================
 
 function updateFPS(){
 
@@ -147,17 +147,16 @@ performance.now();
 fps =
 Math.round(
 1000 /
-(now-lastTime)
+(now - lastTime)
 );
 
-lastTime =
-now;
+lastTime = now;
 
 }
 
-// ======================
+// =====================================
 // Debug Layer
-// ======================
+// =====================================
 
 function drawDebug(){
 
@@ -213,9 +212,9 @@ ctx.restore();
 
 }
 
-// ======================
-// Draw Cursor
-// ======================
+// =====================================
+// Cursor
+// =====================================
 
 function drawCursor(){
 
@@ -227,19 +226,102 @@ ctx
 
 }
 
-// ======================
+// =====================================
+// Hover Detection
+// =====================================
+
+function processSelection(){
+
+balloonManager.checkHover();
+
+const selected =
+
+balloonManager
+.getSelectedBalloon();
+
+if(
+selected
+){
+
+selectBalloon(
+selected
+);
+
+}
+
+}
+
+// =====================================
+// Select Balloon
+// =====================================
+
+function selectBalloon(
+balloon
+){
+
+if(
+balloon.selected
+)
+return;
+
+balloon.selected =
+true;
+
+if(
+balloon.correct
+){
+
+addScore(
+CONFIG.CORRECT_SCORE
+);
+
+console.log(
+"Correct"
+);
+
+}
+else{
+
+addScore(
+CONFIG.WRONG_SCORE
+);
+
+console.log(
+"Wrong"
+);
+
+}
+
+// Phase 3.4
+// Particle Explosion
+
+console.log(
+"POP!"
+);
+
+setTimeout(()=>{
+
+nextQuestion();
+
+},500);
+
+}
+
+// =====================================
 // Update Game
-// ======================
+// =====================================
 
 function updateGame(){
 
 balloonManager.update();
 
+processSelection();
+
 }
 
-// ======================
+// =====================================
 // Draw Game
-// ======================
+// =====================================
 
 function drawGame(){
 
@@ -249,9 +331,132 @@ ctx
 
 }
 
-// ======================
+// =====================================
+// Score
+// =====================================
+
+window.addScore =
+function(points){
+
+score += points;
+
+if(
+score < 0
+){
+
+score = 0;
+
+}
+
+scoreElement.innerText =
+score;
+
+};
+
+// =====================================
+// Next Question
+// =====================================
+
+window.nextQuestion =
+function(){
+
+const next =
+questionManager.next();
+
+if(!next){
+
+showGameOver();
+
+return;
+
+}
+
+questionElement.innerText =
+next.question;
+
+balloonManager.spawn(
+next
+);
+
+};
+
+// =====================================
+// Game Over
+// =====================================
+
+function showGameOver(){
+
+questionElement.innerText =
+"🎉 จบเกม 🎉";
+
+balloonManager.balloons =
+[];
+
+}
+
+// =====================================
+// Reset Game
+// =====================================
+
+window.resetGame =
+function(){
+
+score = 0;
+
+scoreElement.innerText =
+0;
+
+questionManager.index = 0;
+
+loadCurrentQuestion();
+
+};
+
+// =====================================
+// Keyboard Debug
+// =====================================
+
+window.addEventListener(
+
+"keydown",
+
+event=>{
+
+switch(
+event.key
+){
+
+case "n":
+
+nextQuestion();
+
+break;
+
+case "+":
+
+addScore(
+10
+);
+
+break;
+
+case "-":
+
+addScore(
+-5
+);
+
+break;
+
+}
+
+}
+
+);
+
+// =====================================
 // Main Loop
-// ======================
+// =====================================
 
 function animate(){
 
@@ -276,105 +481,3 @@ animate
 }
 
 animate();
-
-// ======================
-// Public Functions
-// ======================
-
-window.nextQuestion =
-function(){
-
-const next =
-questionManager.next();
-
-if(!next){
-
-questionElement.innerText =
-"จบเกม";
-
-return;
-
-}
-
-questionElement.innerText =
-next.question;
-
-balloonManager.spawn(
-next
-);
-
-};
-
-// ======================
-// Score Update
-// ======================
-
-window.addScore =
-function(points){
-
-score += points;
-
-if(score < 0){
-
-score = 0;
-
-}
-
-scoreElement.innerText =
-score;
-
-};
-
-// ======================
-// Reset Game
-// ======================
-
-window.resetGame =
-function(){
-
-score = 0;
-
-scoreElement.innerText =
-0;
-
-questionManager.index = 0;
-
-loadCurrentQuestion();
-
-};
-
-// ======================
-// Keyboard Debug
-// ======================
-
-window.addEventListener(
-
-"keydown",
-
-event => {
-
-switch(event.key){
-
-case "n":
-
-nextQuestion();
-
-break;
-
-case "+":
-
-addScore(10);
-
-break;
-
-case "-":
-
-addScore(-5);
-
-break;
-
-}
-
-}
-
-);
