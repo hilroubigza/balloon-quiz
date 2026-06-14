@@ -55,6 +55,7 @@ resizeCanvas
 // ----------------------
 // State
 // ----------------------
+let flowManager;
 
 let score = 0;
 
@@ -123,6 +124,7 @@ questionElement.innerHTML =
 return;
 
 }
+  
 
 loadQuestion();
 
