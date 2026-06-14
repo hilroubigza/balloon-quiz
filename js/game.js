@@ -79,7 +79,9 @@ const timerElement =
 document.getElementById("timer");
 
 const questionElement =
-document.getElementById("questionBox");
+document.getElementById(
+"questionBox"
+);
 
 // ----------------------
 // Managers
