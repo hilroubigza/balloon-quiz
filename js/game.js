@@ -553,7 +553,6 @@ cursor.draw(
 ctx
 );
 
-drawDebug();
 
 }
 
@@ -563,17 +562,13 @@ drawDebug();
 
 function animate(){
 
-frameCount++;
+    update();
 
-updateFPS();
+    draw();
 
-update();
-
-draw();
-
-requestAnimationFrame(
-animate
-);
+    requestAnimationFrame(
+        animate
+    );
 
 }
 
