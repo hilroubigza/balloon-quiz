@@ -160,91 +160,84 @@ questionElement.innerHTML =
 
 function loadQuestion(){
 
-currentQuestion =
+    currentQuestion =
+    questionManager.current();
 
-questionManager.current();
+    if(!currentQuestion){
 
-if(!currentQuestion){
+        showGameOver();
 
-showGameOver();
+        return;
 
-return;
+    }
 
-}
+    questionElement.innerHTML =
+    currentQuestion.question;
 
-questionElement.innerHTML =
+    balloonManager.spawn(
+        currentQuestion
+    );
 
-currentQuestion.question;
-
-balloonManager.spawn(
-currentQuestion
-);
-
-timer.start();
+    timer.start();
 
 }
 
 function nextQuestion(){
 
-const next =
+    const next =
+    questionManager.next();
 
-questionManager.next();
+    if(!next){
 
-if(!next){
+        showGameOver();
 
-showGameOver();
+        return;
 
-return;
+    }
 
-}
+    questionElement.innerHTML =
+    next.question;
 
-loadQuestion();
+    balloonManager.spawn(
+        next
+    );
+
+    timer.start();
 
 }
 
 function handleTimeout(){
 
-if(
-gameState !==
-GameState.QUESTION
-){
+    if(
+        gameState !==
+        GameState.QUESTION
+    ){
+        return;
+    }
 
-return;
+    gameState =
+    GameState.RESULT;
 
-}
+    floatingTextManager.add(
 
-gameState =
-GameState.RESULT;
+        canvas.width / 2,
 
-floatingTextManager.add(
+        canvas.height / 2,
 
-canvas.width/2,
+        "หมดเวลา",
 
-canvas.height/2,
+        "#FFFF00"
 
-"หมดเวลา",
+    );
 
-"#FFFF00"
+    setTimeout(()=>{
 
-);
+        gameState =
+        GameState.QUESTION;
 
-setTimeout(()=>{
+        nextQuestion();
 
-gameState =
-GameState.QUESTION;
-
-nextQuestion();
-
-},1000);
-
-}
-
-questionElement.innerHTML =
-next.question;
-
-balloonManager.spawn(
-next
-);
+    },1000);
 
 }
 
